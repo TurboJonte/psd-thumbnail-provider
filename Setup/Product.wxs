@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-	<Product Id="*" Name="PSD Thumbnail Provider" Language="1033" Version="1.8.0.0" Manufacturer="Agamnentzar" UpgradeCode="cb88ff56-355c-48fd-8343-8d3f40ef02ce">
+	<Product Id="*" Name="PSD Thumbnail and Preview Handler" Language="1033" Version="2.0.0.0" Manufacturer="Agamnentzar" UpgradeCode="cb88ff56-355c-48fd-8343-8d3f40ef02ce">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 		<Condition Message="You need to be an administrator to install this product.">Privileged</Condition>
-		<MajorUpgrade Schedule="afterInstallInitialize" DowngradeErrorMessage="A newer version of PSD Thumbnail Provider is already installed." />
+		<MajorUpgrade Schedule="afterInstallInitialize" DowngradeErrorMessage="A newer version of PSD Thumbnail and Preview Handler is already installed." />
 		<Media Id="1" Cabinet="Main.cab" EmbedCab="yes" />
 
-		<Feature Id="ProductFeature" Title="PSD Thumbnail Provider" Level="1">
+		<Feature Id="ProductFeature" Title="PSD Thumbnail and Preview Handler" Level="1">
 			<ComponentRef Id="MainDllComponent" />
 			<ComponentRef Id="RegistryEntries" />
 		</Feature>
@@ -36,6 +36,44 @@
 				</RegistryKey>
 				<RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved">
 					<RegistryValue Type="string" Name="{5BB45D32-AF01-414F-B60A-5E999B986681}" Value="PSD Thumbnail Provider" />
+				</RegistryKey>
+
+				<!-- Thumbnail provider also via SystemFileAssociations, so it keeps
+				     working when a ProgID (e.g. Photoshop's) owns the extension. -->
+				<RegistryKey Root="HKCR" Key="SystemFileAssociations\.psd\shellex\{e357fccd-a995-4576-b01f-234630154e96}" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+					<RegistryValue Type="string" Value="{5BB45D32-AF01-414F-B60A-5E999B986681}" />
+				</RegistryKey>
+				<RegistryKey Root="HKCR" Key="SystemFileAssociations\.psb\shellex\{e357fccd-a995-4576-b01f-234630154e96}" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+					<RegistryValue Type="string" Value="{5BB45D32-AF01-414F-B60A-5E999B986681}" />
+				</RegistryKey>
+
+				<!-- Preview handler. AppID points at prevhost.exe so the handler runs
+				     out of process and cannot take Explorer down with it. -->
+				<RegistryKey Root="HKCR" Key="CLSID\{C4A4EC15-9C49-40A5-BD02-269CB227A29D}" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+					<RegistryValue Type="string" Value="PSD Preview Handler" />
+					<RegistryValue Type="string" Name="AppID" Value="{534A1E02-D58F-44f0-B58B-36CBED287C7C}" />
+					<RegistryKey Key="InprocServer32" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+						<RegistryValue Type="string" Value="[System64Folder]PsdThumbnailProvider.dll" />
+						<RegistryValue Type="string" Name="ThreadingModel" Value="Apartment" />
+					</RegistryKey>
+				</RegistryKey>
+				<RegistryKey Root="HKCR" Key=".psd\shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+					<RegistryValue Type="string" Value="{C4A4EC15-9C49-40A5-BD02-269CB227A29D}" />
+				</RegistryKey>
+				<RegistryKey Root="HKCR" Key=".psb\shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+					<RegistryValue Type="string" Value="{C4A4EC15-9C49-40A5-BD02-269CB227A29D}" />
+				</RegistryKey>
+				<RegistryKey Root="HKCR" Key="SystemFileAssociations\.psd\shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+					<RegistryValue Type="string" Value="{C4A4EC15-9C49-40A5-BD02-269CB227A29D}" />
+				</RegistryKey>
+				<RegistryKey Root="HKCR" Key="SystemFileAssociations\.psb\shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+					<RegistryValue Type="string" Value="{C4A4EC15-9C49-40A5-BD02-269CB227A29D}" />
+				</RegistryKey>
+				<RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\PreviewHandlers">
+					<RegistryValue Type="string" Name="{C4A4EC15-9C49-40A5-BD02-269CB227A29D}" Value="PSD Preview Handler" />
+				</RegistryKey>
+				<RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved">
+					<RegistryValue Type="string" Name="{C4A4EC15-9C49-40A5-BD02-269CB227A29D}" Value="PSD Preview Handler" />
 				</RegistryKey>
 			</Component>
 		</DirectoryRef>
