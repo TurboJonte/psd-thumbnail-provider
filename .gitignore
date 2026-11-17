@@ -5,3 +5,18 @@ Release
 *.sdf
 *.vcxproj.user
 Test/extra
+
+# Test harness build output and generated corpus
+Test/obj*/
+Test/*.exe
+Test/*.obj
+Test/*.pdb
+Test/gen_*.psd
+Test/gen_*.psb
+Test/out_*.png
+Test/cmp_*.png
+Test/preview_*.png
+Test/orig_GetThumbnail.cpp
+
+# Large sample files
+jj-test.psd
