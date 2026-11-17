@@ -1,12 +1,13 @@
 #include "ClassFactory.h"
 #include "PsdThumbnailProvider.h"
+#include "PsdPreviewHandler.h"
 #include <new>
 #include <Shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
 
 extern long g_cDllRef;
 
-ClassFactory::ClassFactory() : m_cRef(1) {
+ClassFactory::ClassFactory(REFCLSID clsid) : m_cRef(1), m_clsid(clsid) {
 	InterlockedIncrement(&g_cDllRef);
 }
 
@@ -42,17 +43,22 @@ IFACEMETHODIMP_(ULONG) ClassFactory::Release() {
 IFACEMETHODIMP ClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void **ppv) {
 	HRESULT hr = CLASS_E_NOAGGREGATION;
 
-	// pUnkOuter is used for aggregation. We do not support it in the sample.
+	// pUnkOuter is used for aggregation, which we do not support.
 	if (pUnkOuter == NULL) {
 		hr = E_OUTOFMEMORY;
 
-		// Create the COM component.
-		PsdThumbnailProvider *pExt = new (std::nothrow) PsdThumbnailProvider();
-
-		if (pExt) {
-			// Query the specified interface.
-			hr = pExt->QueryInterface(riid, ppv);
-			pExt->Release();
+		if (IsEqualCLSID(m_clsid, CLSID_PsdPreviewHandler)) {
+			PsdPreviewHandler *pExt = new (std::nothrow) PsdPreviewHandler();
+			if (pExt) {
+				hr = pExt->QueryInterface(riid, ppv);
+				pExt->Release();
+			}
+		} else {
+			PsdThumbnailProvider *pExt = new (std::nothrow) PsdThumbnailProvider();
+			if (pExt) {
+				hr = pExt->QueryInterface(riid, ppv);
+				pExt->Release();
+			}
 		}
 	}
 
