@@ -15,12 +15,21 @@
 
 .PARAMETER InPlace
     Register the DLL where it is instead of copying it (useful while developing).
+
+.PARAMETER NoRestart
+    Skip restarting Explorer. The thumbnail cache cannot be cleared while
+    Explorer is running, so already-seen PSDs will keep their old icons until
+    you restart it yourself.
+
+.NOTES
+    No Windows reboot is required - only Explorer needs restarting.
 #>
 [CmdletBinding()]
 param(
     [string] $Dll = "$PSScriptRoot\PsdThumbnailProvider\x64\Release\PsdThumbnailProvider.dll",
     [string] $InstallDir = "$env:ProgramFiles\PsdPreview",
-    [switch] $InPlace
+    [switch] $InPlace,
+    [switch] $NoRestart
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,16 +68,46 @@ if ($p.ExitCode -ne 0) {
     throw "regsvr32 failed with exit code $($p.ExitCode)"
 }
 
-# Drop cached thumbnails so existing PSDs are re-rendered.
-Write-Host "Clearing the thumbnail cache ..."
-Get-Process -Name explorer -ErrorAction SilentlyContinue | Out-Null
+# Explorer keeps thumbcache_*.db open, and the files cannot be deleted while it
+# runs - so stop it first, clear the cache, then bring it back. Without this,
+# PSDs that already have a cached generic icon keep showing it.
 $cache = "$env:LOCALAPPDATA\Microsoft\Windows\Explorer"
-Get-ChildItem -Path $cache -Filter 'thumbcache_*.db' -ErrorAction SilentlyContinue |
-    ForEach-Object { Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue }
+
+if ($NoRestart) {
+    Write-Warning "Skipping the Explorer restart, so the thumbnail cache was not cleared."
+    Write-Warning "PSDs you have already browsed will keep their old icons."
+} else {
+    Write-Host "Restarting Explorer and clearing the thumbnail cache ..."
+
+    Get-Process -Name explorer -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Sleep -Milliseconds 800
+
+    $removed = 0
+    $failed = 0
+    Get-ChildItem -Path $cache -Filter 'thumbcache_*.db' -ErrorAction SilentlyContinue | ForEach-Object {
+        try {
+            Remove-Item $_.FullName -Force -ErrorAction Stop
+            $removed++
+        } catch {
+            $failed++
+        }
+    }
+
+    # Explorer normally respawns on its own; start it if it did not.
+    if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) {
+        Start-Process explorer.exe
+    }
+
+    Write-Host "  cache files removed: $removed"
+    if ($failed -gt 0) {
+        Write-Warning "  $failed cache file(s) were still locked and could not be removed."
+        Write-Warning "  Some PSDs may keep their old icons until the next sign-in."
+    }
+}
 
 Write-Host ""
 Write-Host "Installed." -ForegroundColor Green
 Write-Host "  Thumbnails:    .psd and .psb in Explorer"
 Write-Host "  Preview pane:  enable with Alt+P in Explorer"
 Write-Host ""
-Write-Host "Restart Explorer to pick up the change:  Stop-Process -Name explorer -Force"
+Write-Host "No Windows restart is needed."
