@@ -12,6 +12,10 @@ PsdThumbnailProvider::PsdThumbnailProvider() : m_cRef(1), m_pStream(NULL) {
 }
 
 PsdThumbnailProvider::~PsdThumbnailProvider() {
+	if (m_pStream) {
+		m_pStream->Release();
+		m_pStream = NULL;
+	}
 	InterlockedDecrement(&g_cDllRef);
 }
 
@@ -54,10 +58,15 @@ IFACEMETHODIMP PsdThumbnailProvider::Initialize(IStream *pStream, DWORD grfMode)
 // IThumbnailProvider
 
 IFACEMETHODIMP PsdThumbnailProvider::GetThumbnail(UINT cx, HBITMAP *phbmp, WTS_ALPHATYPE *pdwAlpha) {
+	if (!phbmp || !pdwAlpha) return E_POINTER;
+
+	*phbmp = NULL;
 	*pdwAlpha = WTSAT_ARGB;
-	*phbmp = GetPSDThumbnail(m_pStream);
 
-	m_pStream->Release();
+	if (!m_pStream) return E_UNEXPECTED;
 
-	return *phbmp != NULL ? NOERROR : E_NOTIMPL;
+	// cx is the requested bounding box; honouring it lets the decoder skip rows.
+	*phbmp = GetPSDThumbnail(m_pStream, cx);
+
+	return *phbmp != NULL ? S_OK : E_FAIL;
 }

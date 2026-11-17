@@ -1,5 +1,6 @@
 #include <windows.h>
 #include "../PsdThumbnailProvider/GetThumbnail.cpp"
+#include "../PsdThumbnailProvider/PsdDecoder.cpp"
 
 static HBITMAP bitmap = NULL;
 
